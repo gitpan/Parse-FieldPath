@@ -1,0 +1,11 @@
+LICENSE
+MANIFEST
+META.yml
+Makefile.PL
+README
+dist.ini
+lib/Parse/FieldPath.pm
+t/01_use.t
+t/02_exports.t
+t/03_parse.t
+t/04_extract_fields.t
