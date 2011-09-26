@@ -1,9 +1,9 @@
 package Parse::FieldPath;
 {
-  $Parse::FieldPath::VERSION = '0.001';
+  $Parse::FieldPath::VERSION = '0.002';
 }
 
-# ABSTRACT: Perl module to extract fields from objects 
+# ABSTRACT: Perl module to extract fields from objects
 
 use strict;
 use warnings;
@@ -11,89 +11,65 @@ use warnings;
 use Exporter qw/import unimport/;
 our @EXPORT_OK = qw/build_tree extract_fields/;
 
-use Parse::RecDescent;
 use Scalar::Util;
+use List::Util;
 use Carp;
 
-sub _parser {
-    my $grammar = q{
-        parse: fields /^\Z/
-            {
-                $return = $item[1];
-            }
+use Parse::FieldPath::Parser;
 
-        fields: field(s /,/)
-            {
-                use Hash::Merge qw//;
-                use List::Util qw//;
-                $return = List::Util::reduce { Hash::Merge::merge($a, $b) } {}, @{$item[1]};
-            }
-
-        field: field_list | field_path | <error>
-
-        field_name: /\w+/ | '*' | <error?>
-        field_list: field_path '(' fields ')'
-            {
-                sub deepest {
-                    my $hashref = shift;
-                    return $hashref if scalar(keys %$hashref) == 0;
-                    my $key = (keys %$hashref)[0];
-                    return deepest($hashref->{$key});
-                }
-                my $deepest = deepest($item{field_path});
-                $deepest->{$_} = $item{fields}->{$_} for keys %{$item{fields}};
-                $return = $item{field_path};
-            }
-
-        # Matches "a/b", "a/b/c" or just "a"
-        field_path: field_name(s /\//)
-            {
-                use List::Util qw//;
-
-                # Turn qw/a b c/ into { a => { b => { c => {} } } }
-                my $fields = {};
-                List::Util::reduce { $a->{$b} = {} } $fields, @{$item{'field_name(s)'}};
-                $return = $fields;
-            }
-    };
-    return Parse::RecDescent->new($grammar);
-}
-
-sub build_tree {
-    my ($field_path) = @_;
-    my $parser = _parser;
-    return $parser->parse($field_path);
-}
+# Maximum number of times to allow _extract to recurse.
+use constant RECURSION_LIMIT => 512;
 
 sub extract_fields {
-    my ($obj, $field_path) = @_;
+    my ( $obj, $field_path ) = @_;
 
     croak "extract_fields needs an object" unless Scalar::Util::blessed($obj);
 
-    my $tree = build_tree($field_path);
-    return _fields_from_object($obj, $tree);
+    my $tree = _build_tree($field_path);
+    return _extract( $obj, $tree, 0 );
 }
 
-sub _fields_from_object {
-    my ($obj, $tree) = @_;
+sub _build_tree {
+    my ($field_path) = @_;
+    my $parser = Parse::FieldPath::Parser->new();
+    return $parser->parse($field_path);
+}
+
+sub _extract {
+    my ( $obj, $tree, $recurse_count ) = @_;
+
+    $recurse_count++;
+    die "Maximum recursion limit reached" if $recurse_count > RECURSION_LIMIT;
+
+    my $all_fields = [];
+    $all_fields = $obj->field_list() if $obj->can('field_list');
+
+    die "Expected $obj->field_list to return an arrayref"
+      unless Scalar::Util::reftype($all_fields)
+          && Scalar::Util::reftype($all_fields) eq 'ARRAY';
+
+    if (exists $tree->{'*'} || !%$tree) {
+
+        # We've got an object, but not a list of fields. Get everything.
+        $tree->{$_} = {} for @$all_fields;
+    }
+
+    $obj->fields_requested( [ keys %$tree ] ) if $obj->can('fields_requested');
 
     my %fields;
-    for my $field (keys %$tree) {
+    for my $field ( keys %$tree ) {
+
+        # Only accept fields that have been explicitly allowed
+        next unless List::Util::first { $_ eq $field } @$all_fields;
+
         my $branch = $tree->{$field};
-        my $value = $obj->$field;
-        if (Scalar::Util::blessed($value)) {
-            if (%$branch) {
-                $fields{$field} = _fields_from_object($value, $branch);
-            }
-            else {
-                # We've got an object, but don't know which fields to grab.
-                # FIXME: This is almost certainly the wrong thing to do. It should
-                # figure out what the available fields are and only return those.
-                $fields{$field} = {%$value};
-            }
+        my $value  = $obj->$field;
+        if ( Scalar::Util::blessed($value) ) {
+            $fields{$field} = _extract( $value, $branch, $recurse_count );
         }
         else {
             if (%$branch) {
+
                 # Unblessed object, but a sub-object has been requested.
                 # Setting it to undef, maybe an error should be thrown here
                 # though?
@@ -150,37 +126,69 @@ JSON::XS, or something). Then you can do this:
   #   }
   # }
 
-=head1 SYNTAX
-
-(To be written)
-
 =head1 FUNCTIONS
 
 =over 4
 
 =item B<extract_fields ($object, $field_path)>
 
-Parses the field_path and returns the fields requested from $object.
+Parses the C<field_path> and returns a hashref with the fields requested from
+C<$object>.
 
-=item B<build_tree ($field_path)>
+C<$object>, and any sub-objects, will need to define a method called
+C<all_fields()>. See L<CALLBACKS> for details.
 
-Parses the field_path and returns a tree structure describing it.
+C<field_path> is a string describing the fields to return. Each field is
+separated by a comma, e.g. "a,b" will return fields "a" and "b".
+
+To request a field from a sub-objects, use the form "subobject/field". If more
+than one field from a sub-object is required, put the field names in
+parenthesis, "subobject(field1,field2)".
+
+C<field_path> can go as deep as necessary, for example, this works fine:
+"a/b/c(d/e,f)"
 
 =back
 
-=head1 BUGS / LIMITATIONS
+=head1 CALLBACKS
 
 =over 4
 
-=item Doesn't support arrays currently
+=item B<all_fields()>
 
-=item Needs more callbacks
+A method called C<all_fields()> should be defined for any object (including
+sub-objects), that will be used with this module. It needs to return an
+arrayref containing all the valid fields. Any field requested that's not in the
+list returned by C<all_fields()> will be skipped.
 
-=item Assumes that objects are blessed hashrefs (which isn't necessarily true)
+A simple implementation would be:
 
-=item "field/*" doesn't work very well at present
+  sub all_fields {
+      my ($self) = @_;
+      return [qw/field1 field2/];
+  }
+
+If the list doesn't change, a constant will work too:
+
+  use constant all_fields => [qw/field1 field2/];
+
+This method is required because simply allowing any method to be called would
+be dangerous (e.g. if your object had a "delete_everything()" method, or
+something). It's also necessary to know which fields constitute "everything"
+for the object.
+
+=item B<requested_fields($field_list)>
+
+Called on an object right before the accessor methods are called. It's passed a
+list of fields that are about to be requested. This method is completely
+optional. It's intended to allow the object to fetch anything it needs to, in
+order to make the requested data available.
 
 =back
+
+=head1 GitHub
+
+https://github.com/pboyd/Parse-FieldPath
 
 =head1 AUTHOR
 

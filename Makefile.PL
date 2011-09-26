@@ -9,7 +9,7 @@ use ExtUtils::MakeMaker 6.30;
 
 
 my %WriteMakefileArgs = (
-  "ABSTRACT" => "Perl module to extract fields from objects ",
+  "ABSTRACT" => "Perl module to extract fields from objects",
   "AUTHOR" => "Paul Boyd <pboyd\@dev3l.net>",
   "BUILD_REQUIRES" => {
     "Test::Deep" => 0,
@@ -19,7 +19,9 @@ my %WriteMakefileArgs = (
     "ExtUtils::MakeMaker" => "6.30"
   },
   "DISTNAME" => "Parse-FieldPath",
-  "EXE_FILES" => [],
+  "EXE_FILES" => [
+    "bin/rebuild_grammar.pl"
+  ],
   "LICENSE" => "perl",
   "NAME" => "Parse::FieldPath",
   "PREREQ_PM" => {
@@ -28,7 +30,7 @@ my %WriteMakefileArgs = (
     "Parse::RecDescent" => "1.963",
     "Scalar::Util" => 0
   },
-  "VERSION" => "0.001",
+  "VERSION" => "0.002",
   "test" => {
     "TESTS" => "t/*.t"
   }

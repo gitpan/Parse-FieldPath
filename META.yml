@@ -1,5 +1,5 @@
 ---
-abstract: 'Perl module to extract fields from objects '
+abstract: 'Perl module to extract fields from objects'
 author:
   - 'Paul Boyd <pboyd@dev3l.net>'
 build_requires:
@@ -19,4 +19,4 @@ requires:
   List::Util: 0
   Parse::RecDescent: 1.963
   Scalar::Util: 0
-version: 0.001
+version: 0.002

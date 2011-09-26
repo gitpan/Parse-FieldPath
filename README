@@ -1,9 +1,9 @@
 
 
 This archive contains the distribution Parse-FieldPath,
-version 0.001:
+version 0.002:
 
-  Perl module to extract fields from objects 
+  Perl module to extract fields from objects
 
 This software is copyright (c) 2011 by Paul Boyd.
 
