@@ -19,4 +19,4 @@ requires:
   List::Util: 0
   Parse::RecDescent: 1.963
   Scalar::Util: 0
-version: 0.002
+version: 0.003

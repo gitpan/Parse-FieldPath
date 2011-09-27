@@ -1,6 +1,6 @@
 package Parse::FieldPath;
 {
-  $Parse::FieldPath::VERSION = '0.002';
+  $Parse::FieldPath::VERSION = '0.003';
 }
 
 # ABSTRACT: Perl module to extract fields from objects
@@ -9,7 +9,7 @@ use strict;
 use warnings;
 
 use Exporter qw/import unimport/;
-our @EXPORT_OK = qw/build_tree extract_fields/;
+our @EXPORT_OK = qw/extract_fields/;
 
 use Scalar::Util;
 use List::Util;
@@ -42,9 +42,9 @@ sub _extract {
     die "Maximum recursion limit reached" if $recurse_count > RECURSION_LIMIT;
 
     my $all_fields = [];
-    $all_fields = $obj->field_list() if $obj->can('field_list');
+    $all_fields = $obj->all_fields() if $obj->can('all_fields');
 
-    die "Expected $obj->field_list to return an arrayref"
+    die "Expected $obj->all_fields to return an arrayref"
       unless Scalar::Util::reftype($all_fields)
           && Scalar::Util::reftype($all_fields) eq 'ARRAY';
 
