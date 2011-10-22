@@ -12,6 +12,8 @@ my %WriteMakefileArgs = (
   "ABSTRACT" => "Perl module to extract fields from objects",
   "AUTHOR" => "Paul Boyd <pboyd\@dev3l.net>",
   "BUILD_REQUIRES" => {
+    "Moose" => 0,
+    "MooseX::Test::Role" => "0.02",
     "Test::Deep" => 0,
     "Test::More" => 0
   },
@@ -30,7 +32,7 @@ my %WriteMakefileArgs = (
     "Parse::RecDescent" => "1.963",
     "Scalar::Util" => 0
   },
-  "VERSION" => "0.003",
+  "VERSION" => "0.004",
   "test" => {
     "TESTS" => "t/*.t"
   }

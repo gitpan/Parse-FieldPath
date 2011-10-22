@@ -1,13 +1,9 @@
+Parse::FieldPath
+================
 
+Parses an XPath inspired field list and extracts those fields from an object
+hierarchy.
 
-This archive contains the distribution Parse-FieldPath,
-version 0.003:
-
-  Perl module to extract fields from objects
-
-This software is copyright (c) 2011 by Paul Boyd.
-
-This is free software; you can redistribute it and/or modify it under
-the same terms as the Perl 5 programming language system itself.
-
+Based on the "fields" parameter for the Google+ API:
+http://developers.google.com/+/api/
 

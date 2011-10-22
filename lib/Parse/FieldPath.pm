@@ -1,6 +1,6 @@
 package Parse::FieldPath;
 {
-  $Parse::FieldPath::VERSION = '0.003';
+  $Parse::FieldPath::VERSION = '0.004';
 }
 
 # ABSTRACT: Perl module to extract fields from objects
@@ -11,8 +11,8 @@ use warnings;
 use Exporter qw/import unimport/;
 our @EXPORT_OK = qw/extract_fields/;
 
-use Scalar::Util;
-use List::Util;
+use Scalar::Util qw/reftype blessed/;
+use List::Util qw/first/;
 use Carp;
 
 use Parse::FieldPath::Parser;
@@ -23,7 +23,8 @@ use constant RECURSION_LIMIT => 512;
 sub extract_fields {
     my ( $obj, $field_path ) = @_;
 
-    croak "extract_fields needs an object" unless Scalar::Util::blessed($obj);
+    croak "extract_fields needs an object or a hashref"
+      unless blessed($obj) || ( reftype($obj) && reftype($obj) eq 'HASH' );
 
     my $tree = _build_tree($field_path);
     return _extract( $obj, $tree, 0 );
@@ -36,36 +37,59 @@ sub _build_tree {
 }
 
 sub _extract {
-    my ( $obj, $tree, $recurse_count ) = @_;
+    my ( $source, $tree, $recurse_count ) = @_;
 
     $recurse_count++;
     die "Maximum recursion limit reached" if $recurse_count > RECURSION_LIMIT;
 
+    my $is_object;
+    if ( blessed($source) ) {
+        $is_object = 1;
+    }
+    elsif ( reftype($source) && reftype($source) eq 'HASH' ) {
+        $is_object = 0;
+    }
+    else {
+        return $source;
+    }
+
     my $all_fields = [];
-    $all_fields = $obj->all_fields() if $obj->can('all_fields');
+    if ($is_object) {
+        $all_fields = $source->all_fields() if $source->can('all_fields');
 
-    die "Expected $obj->all_fields to return an arrayref"
-      unless Scalar::Util::reftype($all_fields)
-          && Scalar::Util::reftype($all_fields) eq 'ARRAY';
+        die "Expected $source->all_fields to return an arrayref"
+          unless reftype($all_fields)
+              && reftype($all_fields) eq 'ARRAY';
+    }
+    else {
+        @$all_fields = keys %$source;
+    }
 
-    if (exists $tree->{'*'} || !%$tree) {
+    if ( exists $tree->{'*'} || !%$tree ) {
 
         # We've got an object, but not a list of fields. Get everything.
         $tree->{$_} = {} for @$all_fields;
     }
 
-    $obj->fields_requested( [ keys %$tree ] ) if $obj->can('fields_requested');
+    $source->fields_requested( [ keys %$tree ] )
+      if $is_object && $source->can('fields_requested');
 
     my %fields;
     for my $field ( keys %$tree ) {
 
         # Only accept fields that have been explicitly allowed
-        next unless List::Util::first { $_ eq $field } @$all_fields;
+        next unless first { $_ eq $field } @$all_fields;
 
         my $branch = $tree->{$field};
-        my $value  = $obj->$field;
-        if ( Scalar::Util::blessed($value) ) {
+        my $value  = $is_object ? $source->$field : $source->{$field};
+        my $value_reftype = reftype($value) || '';
+
+        if ( blessed($value) || $value_reftype eq 'HASH' ) {
             $fields{$field} = _extract( $value, $branch, $recurse_count );
+        }
+        elsif ( $value_reftype eq 'ARRAY' ) {
+            $fields{$field} =
+              [ map { _extract( $_, $branch, $recurse_count ) } @{$value} ];
         }
         else {
             if (%$branch) {
@@ -130,12 +154,12 @@ JSON::XS, or something). Then you can do this:
 
 =over 4
 
-=item B<extract_fields ($object, $field_path)>
+=item B<extract_fields ($object_or_hashref, $field_path)>
 
 Parses the C<field_path> and returns a hashref with the fields requested from
-C<$object>.
+C<$object_or_hashref>.
 
-C<$object>, and any sub-objects, will need to define a method called
+C<$object_or_hashref>, and any sub-objects, will need to define a method called
 C<all_fields()>. See L<CALLBACKS> for details.
 
 C<field_path> is a string describing the fields to return. Each field is
