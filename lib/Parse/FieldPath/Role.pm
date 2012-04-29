@@ -1,6 +1,6 @@
 package Parse::FieldPath::Role;
 {
-  $Parse::FieldPath::Role::VERSION = '0.004';
+  $Parse::FieldPath::Role::VERSION = '0.005';
 }
 
 use Moose::Role;

@@ -15,6 +15,7 @@ my %WriteMakefileArgs = (
     "Moose" => 0,
     "MooseX::Test::Role" => "0.02",
     "Test::Deep" => 0,
+    "Test::MockObject" => 0,
     "Test::More" => 0
   },
   "CONFIGURE_REQUIRES" => {
@@ -32,7 +33,7 @@ my %WriteMakefileArgs = (
     "Parse::RecDescent" => "1.963",
     "Scalar::Util" => 0
   },
-  "VERSION" => "0.004",
+  "VERSION" => "0.005",
   "test" => {
     "TESTS" => "t/*.t"
   }

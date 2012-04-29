@@ -1,6 +1,6 @@
 package Parse::FieldPath;
 {
-  $Parse::FieldPath::VERSION = '0.004';
+  $Parse::FieldPath::VERSION = '0.005';
 }
 
 # ABSTRACT: Perl module to extract fields from objects

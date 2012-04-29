@@ -1,6 +1,6 @@
 package Parse::FieldPath::Parser;
 {
-  $Parse::FieldPath::Parser::VERSION = '0.004';
+  $Parse::FieldPath::Parser::VERSION = '0.005';
 }
 use Parse::RecDescent;
 
@@ -9,7 +9,7 @@ use Parse::RecDescent;
 
 package Parse::RecDescent::Parse::FieldPath::Parser;
 {
-  $Parse::RecDescent::Parse::FieldPath::Parser::VERSION = '0.004';
+  $Parse::RecDescent::Parse::FieldPath::Parser::VERSION = '0.005';
 }
 use strict;
 use vars qw($skip $AUTOLOAD  );

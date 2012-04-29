@@ -6,11 +6,12 @@ build_requires:
   Moose: 0
   MooseX::Test::Role: 0.02
   Test::Deep: 0
+  Test::MockObject: 0
   Test::More: 0
 configure_requires:
   ExtUtils::MakeMaker: 6.30
 dynamic_config: 0
-generated_by: 'Dist::Zilla version 4.300000, CPAN::Meta::Converter version 2.110930'
+generated_by: 'Dist::Zilla version 4.300015, CPAN::Meta::Converter version 2.120921'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -25,4 +26,4 @@ requires:
   Scalar::Util: 0
 resources:
   repository: git://github.com/pboyd/Parse-FieldPath.git
-version: 0.004
+version: 0.005
